@@ -1,27 +1,36 @@
 from aiogram import F, Router
-from aiogram.types import Message, FSInputFile
+from aiogram.types import Message, FSInputFile, InputMediaPhoto
 import pdfkit
 import os
-msg_router = Router()
-from utils.database import Database
-from config import DB_NAME
 import fitz
 from PIL import Image
 
+from utils.database import Database
+from config import DB_NAME
+
+
 db = Database(DB_NAME)
+msg_router = Router()
+
+
 
 @msg_router.message(F.document)
 async def file_ot_jpg(message: Message):
     user = db.get_user(message.from_user.id)
-    if user[8] < 3:
+    if user[8] < 444:
         file = await message.bot.get_file(file_id=message.document.file_id)
+        output_fayl = "C:\\Users\\Victus\\Desktop\\python\\5-oy\\lesson_10_re_tg_bot\\downloads\\"
         file_path = file.file_path
-        await message.bot.download_file(file_path, f"{message.document.file_name}")
-        convert_pdf_to_images(f"{os.getcwd()}\\{message.document.file_name}", os.getcwd(), message.document.file_name)
-        for i in os.getcwd():
-            if i.endswith(".jpg"):
-                await message.reply_photo()
-                #Rasmni yuklab olishni qldim jonatishni o'xshmadi
+        await message.bot.download_file(file_path, f"{output_fayl}{message.document.file_name}")
+        convert_pdf_to_images(f"{output_fayl}{message.document.file_name}", output_fayl, message.document.file_name)
+        os.remove(path=output_fayl + message.document.file_name)
+        my_albom = []
+        for i in os.listdir(path=output_fayl):
+            my_albom.append(InputMediaPhoto(media=FSInputFile(f"{output_fayl}{i}")))
+        await message.bot.send_media_group(chat_id=message.from_user.id,
+                                           media=my_albom)
+        for i in os.listdir(path=output_fayl):
+            os.remove(output_fayl+i)
     else:
         await message.answer("urunishlaringiz tugagan")
 
@@ -29,14 +38,16 @@ async def file_ot_jpg(message: Message):
 @msg_router.message(F.text[0:6] == "https:")
 async def url_message(message: Message):
     user = db.get_user(message.from_user.id)
-    if user[8] < 3:
+    if user[8] < 443:
         url = message.text
         path_wkhtmltopdf = r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe"
         config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
-        pdfkit.from_url(url, "fayl.pdf", configuration=config)
+        output_fayl = "C:\\Users\\Victus\\Desktop\\python\\5-oy\\lesson_10_re_tg_bot\\downloads\\"
+        pdfkit.from_url(url, output_fayl + "fayl.pdf",
+                        configuration=config)
         await message.answer("yuklab olish boshlandi")
-        await message.reply_document(document=FSInputFile(path=os.getcwd()+"\\fayl.pdf", filename="file.pdf"))
-        os.remove(path=os.getcwd()+"\\fayl.pdf")
+        await message.reply_document(document=FSInputFile(path=output_fayl+"fayl.pdf", filename="file.pdf"))
+        os.remove(path=output_fayl + "fayl.pdf")
         db.up_url(message.from_user.id)
     else:
         await message.answer("urunishlaringiz tugagan")
